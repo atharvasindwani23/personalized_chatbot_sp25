@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Survey</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen font-sans">
+  <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+    <h1 class="text-2xl font-semibold text-center mb-6">Quick Survey</h1>
+    <form id="surveyForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700">1. How old are you?</label>
+        <input name="age" type="number" required
+               class="mt-1 block w-full border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400"/>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">2. What is your gender?</label>
+        <select name="gender" required
+                class="mt-1 block w-full border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400">
+          <option value="">– Select –</option>
+          <option>Male</option>
+          <option>Female</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">3. How often do you consume alcohol (times per week)?</label>
+        <input name="frequency" type="number" required
+               class="mt-1 block w-full border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400"/>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">4. What type of alcohol do you consume most often?</label>
+        <input name="alcoholType" type="text" required
+               class="mt-1 block w-full border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400"/>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">5. Do you drink alone or socially?</label>
+        <select name="socialContext" required
+                class="mt-1 block w-full border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400">
+          <option value="">– Select –</option>
+          <option>Alone</option>
+          <option>Socially</option>
+          <option>Both</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">6. On a scale of 1-10, how important is alcohol in your relaxation routine?</label>
+        <input name="importance" type="number" min="1" max="10" required
+               class="mt-1 block w-full border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400"/>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">7. What is your main psychological reason for drinking?</label>
+        <textarea name="reason" required rows="3"
+                  class="mt-1 block w-full border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400"></textarea>
+      </div>
+      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition">Submit</button>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('surveyForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const data = {};
+      new FormData(e.target).forEach((v,k) => data[k] = v);
+      const arm = Math.random() < 0.5 ? 'personalized' : 'personalized';
+      if (arm === 'personalized') {
+        sessionStorage.setItem('surveyData', JSON.stringify(data));
+      }
+      fetch('/api/log_survey', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, arm })
+      }).finally(() => {
+        window.location.href = arm + '.html';
+      });
+    });
+  </script>
+</body>
+</html>

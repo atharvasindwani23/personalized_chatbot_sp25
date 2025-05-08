@@ -1,0 +1,91 @@
+body {
+    font-family: 'Raleway', sans-serif;
+    background-color: black;
+    color: #fff;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+
+.main-content {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+.quiz-button {
+    display: inline-block;
+    padding: 12px 24px;
+    border-radius: 50px;
+    background-color: white;
+    color: purple;
+    text-decoration: none;
+    font-size: 1.2em;
+    font-weight: bold;
+    border: 2px solid purple;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.quiz-button:hover {
+    background-color: purple;
+    color: white;
+}
+
+
+.section {
+    text-align: center;
+}
+
+.highlight {
+    font-weight: bold;
+    color:#e92729;
+}
+
+.photo-container {
+    position: relative;
+    display: inline-block;
+}
+
+.photo {
+    width: 200px;
+    height: auto;
+    border-radius: 40%;
+    margin: 20px 0;
+}
+
+.dynamic-text {
+    margin-top: 20px;
+    font-size: 24px;
+    color: white;
+    height: 40px;
+    font-family: 'Raleway', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.social-icons {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.social-icons a {
+    color: #fff;
+    font-size: 24px;
+    margin: 0 10px;
+    text-decoration: none;
+}
+
+.social-icons a:hover {
+    color: #13294b;
+}
+
