@@ -28,7 +28,8 @@ let currentConversation = {
   user: [],
   bot: [],
   flushed: false,
-  fullHistory: [] // NEW: for GPT memory
+  fullHistory: [],
+  surveyData: {} // Store demographics
 };
 
 app.use(express.static(path.join(process.cwd(), 'public')));
@@ -55,7 +56,8 @@ app.post('/api/log_survey', async (req, res) => {
       user: [],
       bot: [],
       flushed: false,
-      fullHistory: []
+      fullHistory: [],
+      surveyData: req.body // Store survey data
     };
   } catch (err) {
     console.error('Error appending survey to Google Sheets:', err);
@@ -113,12 +115,18 @@ app.post('/api/log_chat', async (req, res) => {
   res.sendStatus(204);
 });
 
-// 3) Chat endpoint with memory
+// 3) Chat endpoint with memory and demographics
 app.post('/api/chat', async (req, res) => {
   const { message } = req.body;
 
+  const demographicContext = Object.entries(currentConversation.surveyData || {})
+    .map(([k, v]) => `- ${k}: ${v}`).join('\n');
+
   const messages = [
-    { role: 'system', content: 'You are a compassionate healthcare chatbot. Remember the prior conversation and help the user accordingly.' },
+    {
+      role: 'system',
+      content: `You are a compassionate healthcare chatbot. Use the following user demographic data to personalize responses:\n${demographicContext}`
+    },
     ...currentConversation.fullHistory,
     { role: 'user', content: message }
   ];
