@@ -1,77 +1,18 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quick Survey</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen font-sans">
-  <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-    <h1 class="text-2xl font-semibold text-center mb-6">Quick Survey</h1>
-    <form id="surveyForm" class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700">1. How old are you?</label>
-        <input name="age" type="number" required
-               class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700">2. What is your gender?</label>
-        <select name="gender" required
-                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
-          <option value="">– Select –</option>
-          <option>Male</option>
-          <option>Female</option>
-          <option>Other</option>
-        </select>
-      </div>
-
-      <!-- Repeat similar blocks for questions 3–6 -->
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700">7. What is your main psychological reason for drinking?</label>
-        <textarea name="reason" required rows="3"
-                  class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"></textarea>
-      </div>
-
-      <button type="submit"
-              class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition">
-        Submit
-      </button>
-    </form>
-  </div>
-
-  <script>
-    document.getElementById('surveyForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const data = {};
-      new FormData(e.target).forEach((val, key) => data[key] = val);
-      const arm = Math.random() < 0.5 ? 'personalized' : 'control';
-      if (arm === 'personalized') {
-        sessionStorage.setItem('surveyData', JSON.stringify(data));
-        window.location.href = 'personalized.html';
-      } else {
-        window.location.href = 'control.html';
-      }
-    });
-  </script>
-</body>
-</html>
-
-
-<!-- control.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Standard Support Bot</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    #chat::-webkit-scrollbar { width: 8px; }
-    #chat::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.2); border-radius: 4px; }
+    #chat::-webkit-scrollbar {
+      width: 8px;
+    }
+    #chat::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body class="bg-gray-100 flex flex-col items-center min-h-screen font-sans">
@@ -80,56 +21,59 @@
   </header>
 
   <main class="flex-grow w-full max-w-2xl p-4">
-    <div id="chat" class="bg-white rounded-lg shadow-inner p-6 h-[60vh] overflow-y-auto space-y-4 flex flex-col"></div>
+    <div id="chat" class="bg-white rounded-lg shadow-inner p-6 h-[60vh] overflow-y-auto flex flex-col space-y-4"></div>
   </main>
 
   <form id="chatForm" class="w-full max-w-2xl p-4 bg-white rounded-lg shadow-lg fixed bottom-4">
     <div class="flex space-x-2">
       <input id="msgInput" type="text" placeholder="Type your message…" required
-             class="flex-grow border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"/>
-      <button type="submit" class="bg-gray-800 text-white px-6 py-2 rounded-lg hover:bg-gray-900 transition">
-        Send
-      </button>
+        class="flex-grow border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gray-400" />
+      <button type="submit" class="bg-gray-800 text-white px-6 py-2 rounded-lg hover:bg-gray-900 transition">Send</button>
     </div>
   </form>
 
   <script>
-    const systemPrompt = `
-You are a supportive healthcare-focused chatbot.
-Do NOT add any user demographic or survey information.
-`.trim();
+    const systemPrompt = `You are a supportive healthcare-focused chatbot. Do NOT incorporate any user survey or demographic data.`;
 
     async function sendMessage(userText) {
       const chat = document.getElementById('chat');
-      // user bubble
+
+      // render user bubble
       const userBubble = document.createElement('div');
       userBubble.className = 'self-end bg-blue-500 text-white inline-block px-4 py-2 rounded-tl-lg rounded-tr-lg rounded-bl-lg';
       userBubble.textContent = userText;
       chat.appendChild(userBubble);
       chat.scrollTop = chat.scrollHeight;
 
-      // fetch bot reply
+      // render typing bubble
+      const typingBubble = document.createElement('div');
+      typingBubble.className = 'self-start bg-gray-300 text-gray-700 inline-block px-4 py-2 rounded-tr-lg rounded-bl-lg rounded-br-lg';
+      typingBubble.textContent = '...';
+      chat.appendChild(typingBubble);
+      chat.scrollTop = chat.scrollHeight;
+
+      // fetch response
       const res = await fetch('/api/chat', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ system: systemPrompt, message: userText })
       });
       const data = await res.json();
       const reply = data.reply || 'Oops, something went wrong.';
 
-      // bot bubble with typing effect
-      const botBubble = document.createElement('div');
-      botBubble.className = 'self-start bg-gray-200 text-gray-800 inline-block px-4 py-2 rounded-tr-lg rounded-bl-lg rounded-br-lg';
-      chat.appendChild(botBubble);
-
-      // typing word by word
+      // type out the reply word-by-word
+      typingBubble.textContent = '';
       const words = reply.split(' ');
-      botBubble.textContent = '';
-      words.forEach((word, idx) => {
-        setTimeout(() => {
-          botBubble.textContent += word + (idx < words.length - 1 ? ' ' : '');
+      let idx = 0;
+      function typeNextWord() {
+        if (idx < words.length) {
+          typingBubble.textContent += words[idx] + (idx < words.length - 1 ? ' ' : '');
           chat.scrollTop = chat.scrollHeight;
-        }, idx * 150);
-      });
+          idx++;
+          setTimeout(typeNextWord, 50);
+        }
+      }
+      typeNextWord();
     }
 
     document.getElementById('chatForm').addEventListener('submit', e => {
@@ -138,6 +82,15 @@ Do NOT add any user demographic or survey information.
       if (!txt) return;
       document.getElementById('msgInput').value = '';
       sendMessage(txt);
+    });
+
+    // optional: initial greeting
+    window.addEventListener('DOMContentLoaded', () => {
+      const chat = document.getElementById('chat');
+      const greeting = document.createElement('div');
+      greeting.className = 'self-start bg-gray-200 text-gray-800 inline-block px-4 py-2 rounded-tr-lg rounded-bl-lg rounded-br-lg';
+      greeting.textContent = "Hi, I'm your support bot. Feel free to ask me anything!";
+      chat.appendChild(greeting);
     });
   </script>
 </body>

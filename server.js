@@ -13,8 +13,8 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Google Sheets configuration
 const SPREADSHEET_ID = '1Nt79kUX0xZSnSWoe8xWEyhQsVUO5UOoIjgQTP9XdPig';
-const SURVEY_RANGE   = 'Surveys!A:I';  // timestamp, age, gender, frequency, alcoholType, socialContext, importance, reason, arm
-const CHAT_RANGE     = 'Chats!A:C';    // timestamp, user_message, bot_reply
+const SURVEY_RANGE   = 'Surveys!A:I';
+const CHAT_RANGE     = 'Chats!A:C';
 
 // Ensure logs directory exists
 const logsDir = path.join(process.cwd(), 'logs');
@@ -22,16 +22,22 @@ fs.mkdirSync(logsDir, { recursive: true });
 const surveyLog = path.join(logsDir, 'surveys.log');
 const chatLog   = path.join(logsDir, 'chats.log');
 
-// Middleware
+// Track conversation per server start
+let currentConversation = {
+  timestamp: new Date().toISOString(),
+  user: [],
+  bot: [],
+  flushed: false,
+  fullHistory: [] // NEW: for GPT memory
+};
+
 app.use(express.static(path.join(process.cwd(), 'public')));
 app.use(bodyParser.json());
 
 // 1) Log survey submissions
 app.post('/api/log_survey', async (req, res) => {
   const entry = { timestamp: new Date().toISOString(), ...req.body };
-  // Append to flat file
   fs.appendFileSync(surveyLog, JSON.stringify(entry) + '\n');
-  // Append to Google Sheets
   try {
     await appendRow(SPREADSHEET_ID, SURVEY_RANGE, [
       entry.timestamp,
@@ -44,6 +50,13 @@ app.post('/api/log_survey', async (req, res) => {
       req.body.reason,
       req.body.arm
     ]);
+    currentConversation = {
+      timestamp: new Date().toISOString(),
+      user: [],
+      bot: [],
+      flushed: false,
+      fullHistory: []
+    };
   } catch (err) {
     console.error('Error appending survey to Google Sheets:', err);
   }
@@ -55,28 +68,65 @@ app.post('/api/log_chat', async (req, res) => {
   const { user_message, bot_reply } = req.body;
   const entry = { timestamp: new Date().toISOString(), user_message, bot_reply };
   fs.appendFileSync(chatLog, JSON.stringify(entry) + '\n');
+
+  currentConversation.user.push(user_message);
+  currentConversation.bot.push(bot_reply);
+  currentConversation.fullHistory.push({ role: 'user', content: user_message });
+  currentConversation.fullHistory.push({ role: 'assistant', content: bot_reply });
+
   try {
-    await appendRow(SPREADSHEET_ID, CHAT_RANGE, [
-      entry.timestamp,
-      user_message,
-      bot_reply
-    ]);
+    if (!currentConversation.flushed) {
+      await appendRow(SPREADSHEET_ID, CHAT_RANGE, [
+        currentConversation.timestamp,
+        currentConversation.user.join("\n"),
+        currentConversation.bot.join("\n")
+      ]);
+      currentConversation.flushed = true;
+    } else {
+      const { google } = await import('googleapis');
+      const auth = new google.auth.GoogleAuth({
+        keyFile: path.join(process.cwd(), 'sheet-creds.json'),
+        scopes: ['https://www.googleapis.com/auth/spreadsheets']
+      });
+      const sheets = google.sheets({ version: 'v4', auth });
+      const get = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: CHAT_RANGE
+      });
+      const rowIndex = (get.data.values || []).length;
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `Chats!A${rowIndex}:C${rowIndex}`,
+        valueInputOption: 'RAW',
+        requestBody: {
+          values: [[
+            currentConversation.timestamp,
+            currentConversation.user.join("\n"),
+            currentConversation.bot.join("\n")
+          ]]
+        }
+      });
+    }
   } catch (err) {
     console.error('Error appending chat to Google Sheets:', err);
   }
   res.sendStatus(204);
 });
 
-// 3) Chat endpoint
+// 3) Chat endpoint with memory
 app.post('/api/chat', async (req, res) => {
-  const { system, message } = req.body;
+  const { message } = req.body;
+
+  const messages = [
+    { role: 'system', content: 'You are a compassionate healthcare chatbot. Remember the prior conversation and help the user accordingly.' },
+    ...currentConversation.fullHistory,
+    { role: 'user', content: message }
+  ];
+
   try {
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user',   content: message }
-      ]
+      messages
     });
     const reply = response.choices[0].message.content;
     return res.json({ reply });

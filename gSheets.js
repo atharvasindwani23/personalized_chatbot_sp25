@@ -19,8 +19,9 @@ export const sheets = google.sheets({ version: 'v4', auth });
 
 /**
  * Append a single row to the given spreadsheet/range.
+ * If appending chat logs, consolidate Q/A pairs into single cells.
  * @param {string} spreadsheetId The ID of the spreadsheet.
- * @param {string} range         A1 notation of the target sheet and columns, e.g. 'Surveys!A:H'
+ * @param {string} range         A1 notation of the target sheet and columns, e.g. 'Chats!A:C'
  * @param {any[]}  values        Array of cell values for the new row.
  */
 export async function appendRow(spreadsheetId, range, values) {
@@ -29,5 +30,33 @@ export async function appendRow(spreadsheetId, range, values) {
     range,
     valueInputOption: 'RAW',
     requestBody: { values: [values] }
+  });
+}
+
+/**
+ * Append or update a grouped conversation entry.
+ * This will try to find the most recent row and add to it instead of new row per message.
+ */
+export async function appendToLatestChat(spreadsheetId, range, userMessage, botReply) {
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range
+  });
+
+  const rows = res.data.values || [];
+  const lastRow = rows[rows.length - 1] || [];
+  const timestamp = new Date().toISOString();
+
+  const newUserMsg = (lastRow[1] || '') + (lastRow[1] ? ' || ' : '') + userMessage;
+  const newBotMsg  = (lastRow[2] || '') + (lastRow[2] ? ' || ' : '') + botReply;
+
+  const updated = [lastRow[0] || timestamp, newUserMsg, newBotMsg];
+
+  // overwrite the last row in-place
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `Chats!A${rows.length}:C${rows.length}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [updated] }
   });
 }

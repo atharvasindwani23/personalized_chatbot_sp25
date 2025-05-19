@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Personalized Support Bot</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -10,9 +10,11 @@
   <header class="w-full bg-blue-600 text-white py-4 shadow-md">
     <h1 class="text-center text-2xl font-semibold">Personalized Support Bot</h1>
   </header>
+
   <main class="flex-grow w-full max-w-2xl p-4">
     <div id="chat" class="bg-white rounded-lg shadow-inner p-6 h-[60vh] overflow-y-auto flex flex-col space-y-4"></div>
   </main>
+
   <form id="chatForm" class="w-full max-w-2xl p-4 bg-white rounded-lg shadow-lg fixed bottom-4">
     <div class="flex space-x-2">
       <input id="msgInput" type="text" placeholder="Type your message…" required
@@ -46,15 +48,41 @@
 
     async function sendMessage(userText) {
       const chat = document.getElementById('chat');
+
+      // User message
       typeBubble(chat, userText, true);
+
+      // Typing indicator
+      const typingBubble = document.createElement('div');
+      typingBubble.className = 'self-start bg-gray-300 text-gray-700 inline-block px-4 py-2 rounded-tr-lg rounded-bl-lg rounded-br-lg';
+      typingBubble.textContent = '...';
+      chat.appendChild(typingBubble);
+      chat.scrollTop = chat.scrollHeight;
+
+      // Fetch reply
       const res = await fetch('/api/chat', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ system: systemPrompt, message: userText })
       });
       const data = await res.json();
       const reply = data.reply;
-      typeBubble(chat, reply);
-      // log chat turn
+
+      // Replace "..." with typing effect
+      typingBubble.textContent = '';
+      const words = reply.split(' ');
+      let idx = 0;
+      function showWord() {
+        if (idx < words.length) {
+          typingBubble.textContent += words[idx] + (idx < words.length - 1 ? ' ' : '');
+          chat.scrollTop = chat.scrollHeight;
+          idx++;
+          setTimeout(showWord, 50);
+        }
+      }
+      showWord();
+
+      // Log the exchange
       fetch('/api/log_chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -70,7 +98,7 @@
       sendMessage(txt);
     });
 
-    // initial greeting
+    // Initial greeting
     window.addEventListener('DOMContentLoaded', () => {
       const chat = document.getElementById('chat');
       typeBubble(chat, "Hey, I'm your personalized health bot and I can't wait to assist you!");
