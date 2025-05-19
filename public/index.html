@@ -64,7 +64,7 @@
       e.preventDefault();
       const data = {};
       new FormData(e.target).forEach((v,k) => data[k] = v);
-      const arm = Math.random() < 0.5 ? 'control' : 'control';
+      const arm = Math.random() < 0.5 ? 'personalized' : 'personalized';
       if (arm === 'personalized') {
         sessionStorage.setItem('surveyData', JSON.stringify(data));
       }
